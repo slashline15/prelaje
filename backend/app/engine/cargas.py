@@ -6,7 +6,6 @@ Rastreável a: docs/dominio/01_matriz_dominio_tecnico.md §3 e §4
 from dataclasses import dataclass
 from .materiais import (
     CARGA_ACIDENTAL, PSI2, GAMMA_G, GAMMA_Q,
-    DadosVigota,
 )
 
 PESO_CONCRETO = 25.0   # kN/m³
@@ -27,7 +26,8 @@ class ResultadoCargas:
 
 def calcular_cargas(
     uso: str,
-    vigota: DadosVigota,
+    intereixo_m: float,
+    b_nerv_m: float,
     h_capa_m: float,
     h_enc_m: float,
     g_revestimento: float,
@@ -37,7 +37,8 @@ def calcular_cargas(
 
     Args:
         uso: Identificador de uso conforme UsoLaje enum
-        vigota: Dados da vigota selecionada
+        intereixo_m: Intereixo real adotado na laje (m)
+        b_nerv_m: Largura da nervura (m)
         h_capa_m: Espessura da capa em metros
         h_enc_m: Altura do enchimento em metros
         g_revestimento: Carga de revestimento adicional (kN/m²)
@@ -45,8 +46,7 @@ def calcular_cargas(
     Returns:
         ResultadoCargas com todas as combinações calculadas
     """
-    b_nerv_m = vigota.b_nerv / 100.0   # cm → m
-    s_m      = vigota.intereixo / 100.0  # cm → m
+    s_m = intereixo_m
 
     # Peso próprio da capa de concreto
     g_capa = PESO_CONCRETO * h_capa_m

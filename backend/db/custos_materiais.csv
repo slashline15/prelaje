@@ -1,0 +1,30 @@
+item_tipo,item_codigo,descricao,unidade,preco_unitario,fonte,data_referencia,regiao,observacoes
+vigota,TR 8644,Vigota trelicada TR 8644,m,18.50,Fert Distribuidora,2026-04-09,AM,Preço médio região Norte
+vigota,TR 8644,Vigota trelicada TR 8644,m,17.80,Fert Distribuidora,2026-04-09,SP,Preço região Sudeste
+vigota,TB 12L,Vigota trelicada TB 12L,m,22.30,Fert Distribuidora,2026-04-09,AM,Maior altura
+vigota,TP-8-42,Vigota trelicada TP-8-42 Tecnypor,m,17.90,Tecnypor,2026-04-09,AM,Alternativa Tecnypor
+vigota,TP-10-42,Vigota trelicada TP-10-42 Tecnypor,m,21.50,Tecnypor,2026-04-09,AM,Maior altura Tecnypor
+vigota,TT-08-42,Vigota trelicada TT-08-42 TT,m,18.10,TT Pré-moldados,2026-04-09,AM,Alternativa TT
+vigota,AT-8-42,Vigota trelicada AT-8-42 Ativa,m,17.60,Ativa Pré-moldados,2026-04-09,AM,Alternativa Ativa
+eps,EPS-8-42,EPS h=8cm intereixo 42cm,peça,9.20,Tecnypor,2026-04-09,AM,Densidade 20 kg/m³
+eps,EPS-10-42,EPS h=10cm intereixo 42cm,peça,10.80,Tecnypor,2026-04-09,AM,Densidade 20 kg/m³
+eps,EPS-12-42,EPS h=12cm intereixo 42cm,peça,12.40,Tecnypor,2026-04-09,AM,Densidade 20 kg/m³
+eps,EPS-8-40,EPS h=8cm intereixo 40cm,peça,8.90,Tecnypor,2026-04-09,AM,Intereixo menor
+tela_pop,Q-92,Tela soldada Q-92,m2,24.00,Telashop,2026-04-09,AM,Distribuição e contato
+tela_pop,Q-131,Tela soldada Q-131,m2,28.50,Telashop,2026-04-09,AM,Maior resistência
+tela_pop,Q-165,Tela soldada Q-165,m2,32.00,Telashop,2026-04-09,AM,Reforço adicional
+aco_reforco,CA50-4.2,Barra CA-50 4.2mm,kg,8.50,AçosBrasil,2026-04-09,AM,Aço reforço
+aco_reforco,CA50-5.0,Barra CA-50 5.0mm,kg,8.60,AçosBrasil,2026-04-09,AM,Aço reforço
+aco_reforco,CA50-6.3,Barra CA-50 6.3mm,kg,8.90,AçosBrasil,2026-04-09,AM,Aço reforço
+aco_reforco,CA50-8.0,Barra CA-50 8.0mm,kg,9.10,AçosBrasil,2026-04-09,AM,Aço reforço maior
+aco_reforco,CA60-4.2,Barra CA-60 4.2mm,kg,9.20,AçosBrasil,2026-04-09,AM,Aço de alta resistência
+aco_reforco,CA60-6.3,Barra CA-60 6.3mm,kg,9.50,AçosBrasil,2026-04-09,AM,Aço de alta resistência
+concreto,CONC20,Concreto usinado fck 20 MPa,m3,540.00,Concrepal,2026-04-09,AM,Slump 8-10cm
+concreto,CONC25,Concreto usinado fck 25 MPa,m3,580.00,Concrepal,2026-04-09,AM,Slump 8-10cm
+concreto,CONC30,Concreto usinado fck 30 MPa,m3,620.00,Concrepal,2026-04-09,AM,Slump 8-10cm
+escoramento,ESC-MADEIRA,Escoramento madeira por área,m2,14.00,Aluguel Escoramento,2026-04-09,AM,Aluguel/custo por m2
+escoramento,ESC-METAL,Escoramento metálico por área,m2,16.50,Aluguel Escoramento,2026-04-09,AM,Aluguel/custo por m2
+arame_recozido,ARAME-1.6,Arame recozido 1.6mm,kg,6.80,Abit Arames,2026-04-09,AM,Amarração
+arame_recozido,ARAME-2.0,Arame recozido 2.0mm,kg,7.10,Abit Arames,2026-04-09,AM,Amarração
+espacadores,ESP-PLASTICO,Espaçador plástico 25-30mm,unidade,0.42,Plastcover,2026-04-09,AM,Distanciamento armadura
+frete,FRETE-AM-SM,Frete Manaus-São Manoel (500km),unidade,850.00,Transportadora XYZ,2026-04-09,AM,Caminhão 6-7 ton

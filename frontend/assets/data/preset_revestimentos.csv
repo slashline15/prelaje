@@ -1,0 +1,17 @@
+id,descricao,g_rev_kN_m2
+1,Piso ceramico simples 5mm + argamassa,0.19
+2,Piso ceramico 8mm + argamassa,0.25
+3,Piso cimentado sem acabamento,0.12
+4,Piso madeira ou parquet fino,0.08
+5,Revestimento gesso teto liso 10mm,0.12
+6,Revestimento gesso teto trabalhado,0.15
+7,Alvenaria simples 1/2 tijolo (sobre laje),1.35
+8,Alvenaria dupla 1 tijolo (sobre laje),2.40
+9,Pintura e reboco liso teto e parede,0.18
+10,Hidraulica + impermeabilizacao,0.30
+11,Revestimento adesivo externo 50mm,1.50
+12,Terraço completo com impermeabilizacao,0.80
+13,Cobertura leve telha+estrutura madeira,1.20
+14,Cobertura media - paineis pre-moldados,1.80
+15,Cobertura pesada - tabeirou + telha barro,2.50
+16,Forro pre-fabricado suspenso,0.25

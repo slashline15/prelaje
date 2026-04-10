@@ -1,0 +1,25 @@
+item_tipo,item_codigo,multiplo_compra,unidade_compra,perda_percentual
+vigota,TR 8644,1.0,m,5.0
+vigota,TB 12L,1.0,m,5.0
+vigota,TP-8-42,1.0,m,5.0
+vigota,TP-10-42,1.0,m,5.0
+eps,EPS-8-42,10.0,peça,3.5
+eps,EPS-10-42,10.0,peça,3.5
+eps,EPS-12-42,10.0,peça,3.5
+tela_pop,Q-92,50.0,m2,2.5
+tela_pop,Q-131,50.0,m2,2.5
+tela_pop,Q-165,50.0,m2,2.5
+aco_reforco,CA50-4.2,25.0,kg,3.0
+aco_reforco,CA50-5.0,25.0,kg,3.0
+aco_reforco,CA50-6.3,25.0,kg,3.0
+aco_reforco,CA50-8.0,12.0,kg,3.0
+aco_reforco,CA60-4.2,25.0,kg,3.0
+aco_reforco,CA60-6.3,25.0,kg,3.0
+concreto,CONC20,1.0,m3,2.0
+concreto,CONC25,1.0,m3,2.0
+concreto,CONC30,1.0,m3,2.0
+arame_recozido,ARAME-1.6,50.0,kg,2.5
+arame_recozido,ARAME-2.0,50.0,kg,2.5
+espacadores,ESP-PLASTICO,1000.0,unidade,0.5
+escoramento,ESC-MADEIRA,100.0,m2,1.5
+escoramento,ESC-METAL,100.0,m2,1.0

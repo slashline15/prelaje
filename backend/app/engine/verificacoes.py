@@ -29,6 +29,7 @@ class SecaoT:
     h_nerv: float # m — altura da nervura
     h_total: float# m — altura total
     d: float      # m — altura útil
+    y_cg: float   # m — posição do centroide a partir do topo
     Ic: float     # m⁴ — inércia da seção não-fissurada
 
 
@@ -36,6 +37,7 @@ def calcular_secao_t(
     vigota: DadosVigota,
     h_capa_m: float,
     L: float,
+    intereixo_m: float,
     c_nom: float = 0.025,   # m — cobrimento nominal padrão
     phi_long: float = 0.010, # m — diâmetro longitudinal estimado
 ) -> SecaoT:
@@ -46,7 +48,7 @@ def calcular_secao_t(
     b_nerv  = vigota.b_nerv / 100.0   # cm → m
     h_nerv  = vigota.h_vigota / 100.0  # cm → m
     h_total = h_nerv + h_capa_m
-    s_m     = vigota.intereixo / 100.0
+    s_m     = intereixo_m
 
     # Largura efetiva da mesa (NBR 6118 §14.6.2)
     b_ef = min(b_nerv + L / 10.0, s_m)
@@ -71,7 +73,7 @@ def calcular_secao_t(
     return SecaoT(
         b_ef=b_ef, b_nerv=b_nerv,
         h_f=h_capa_m, h_nerv=h_nerv,
-        h_total=h_total, d=d, Ic=Ic,
+        h_total=h_total, d=d, y_cg=y_cg, Ic=Ic,
     )
 
 
@@ -250,6 +252,7 @@ def verificar_flecha(
     secao: SecaoT,
     fck_mpa: float,
     As_cm2: float,
+    ma_ser: float | None = None,
 ) -> ResultadoFlecha:
     """
     Cálculo de flecha pelo modelo de Branson.
@@ -260,11 +263,10 @@ def verificar_flecha(
     As_m2= As_cm2 / 10_000.0
 
     # Momento de fissuração
-    y_t  = secao.h_total - (secao.h_f / 2.0)  # fibra inferior (tração)
+    y_t  = secao.h_total - secao.y_cg  # fibra inferior (tração)
     Mcr  = fctk_inf(fck_mpa) * 1000.0 * Ic / y_t  # kN·m
 
-    # Momento de serviço (biapoiada)
-    Ma = w_ser * L**2 / 8.0  # kN·m
+    Ma = ma_ser if ma_ser is not None else w_ser * L**2 / 8.0  # kN·m
 
     if Ma <= 0:
         return ResultadoFlecha(0, 0, 0, L / 2.5, True, "")

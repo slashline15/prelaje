@@ -41,7 +41,8 @@ class TestCaso01_Biapoiada_Residencial_L4:
         vigota = get_vigota("TR 8644")
         cargas = calcular_cargas(
             uso="residencial_dormitorio",
-            vigota=vigota,
+            intereixo_m=0.42,
+            b_nerv_m=vigota.b_nerv / 100.0,
             h_capa_m=0.04,
             h_enc_m=0.08,
             g_revestimento=0.5,
@@ -55,7 +56,8 @@ class TestCaso01_Biapoiada_Residencial_L4:
         vigota = get_vigota("TR 8644")
         cargas = calcular_cargas(
             uso="residencial_dormitorio",
-            vigota=vigota,
+            intereixo_m=0.42,
+            b_nerv_m=vigota.b_nerv / 100.0,
             h_capa_m=0.04,
             h_enc_m=0.08,
             g_revestimento=0.5,
@@ -68,12 +70,21 @@ class TestCaso01_Biapoiada_Residencial_L4:
     def test_resultado_aprovado(self):
         resultado = calcular(self.DADOS)
         assert len(resultado.erros) == 0, f"Erros inesperados: {resultado.erros}"
+        assert resultado.aprovado is True
+        assert resultado.status == "approved_with_warnings"
         # TODO: validar valores específicos após cálculo manual
         # assert resultado.elu.as_calculado == pytest.approx(X.XX, abs=0.1)
 
     def test_quantitativos(self):
         resultado = calcular(self.DADOS)
         assert resultado.quantitativos.n_vigotas == pytest.approx(10, abs=1)  # 4.0 / 0.42
+        assert resultado.quantitativos.n_enchimento == 36
+        assert resultado.orcamento is not None
+        assert resultado.orcamento.resumo.total_geral > 0
+        assert resultado.orcamento.resumo.subtotal_direto > 0
+        assert any(item.codigo == "TR 8644" for item in resultado.orcamento.itens)
+        assert any(item.codigo == "CONC20" for item in resultado.orcamento.itens)
+        assert "bdi_simples" in resultado.orcamento.indiretos
 
 
 # ---------------------------------------------------------------------------
@@ -146,8 +157,191 @@ class TestCaso04_TravaVaoMaximo:
         resultado = calcular(dados)
         assert not resultado.aprovado
         assert len(resultado.erros) > 0
+        assert resultado.erros[0].code == "L_MAX_CATALOGO"
+
+
+class TestCaso05_IntereixoIncompativel:
+    def test_intereixo_diferente_do_catalogo_bloqueia(self):
+        dados = DadosLaje(
+            vao=4.0,
+            intereixo=0.48,
+            h_enchimento=0.08,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TR 8644",
+            uso=UsoLaje.RESIDENCIAL_DORMITORIO,
+            g_revestimento=0.0,
+            modo=ModoCalculo.ANALITICO,
+        )
+        resultado = calcular(dados)
+        assert not resultado.aprovado
+        assert resultado.status == "rejected"
+        assert resultado.erros[0].code == "INTEREIXO_INCOMPATIVEL"
+
+
+class TestCaso06_ModoCatalogo:
+    def test_modo_catalogo_deve_retornar_solucao(self):
+        dados = DadosLaje(
+            vao=3.5,
+            intereixo=0.42,
+            h_enchimento=0.08,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TR 8644",
+            uso=UsoLaje.FORRO,
+            g_revestimento=0.0,
+            modo=ModoCalculo.CATALOGO,
+        )
+        resultado = calcular(dados)
+        assert resultado.aprovado
+        assert resultado.status == "approved_with_warnings"
+        assert resultado.catalogo is not None
+        assert resultado.catalogo.vao_tabelado == 3.5
+        assert resultado.catalogo.carga_total_kgf_m2 == pytest.approx(153.5, abs=0.5)
+        assert resultado.catalogo.reforco is not None
+        assert resultado.catalogo.reforco.diametro_mm == 4.2
+        assert resultado.catalogo.reforco.quantidade == 1
+        assert resultado.alertas[0].code == "CATALOGO_REFERENCIA"
+
+
+class TestCaso07_CargaForaCatalogo:
+    def test_carga_acima_da_faixa_rejeita(self):
+        dados = DadosLaje(
+            vao=4.0,
+            intereixo=0.42,
+            h_enchimento=0.08,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TR 8644",
+            uso=UsoLaje.COMERCIAL_LOJA,
+            g_revestimento=4.0,
+            modo=ModoCalculo.CATALOGO,
+        )
+        resultado = calcular(dados)
+        assert not resultado.aprovado
+        assert resultado.status == "rejected"
+        assert resultado.erros[0].code == "CARGA_FORA_CATALOGO"
+
+
+class TestCaso08_CatalogoIndisponivel:
+    def test_vigota_sem_matriz_homologada_rejeita(self):
+        dados = DadosLaje(
+            vao=4.0,
+            intereixo=0.42,
+            h_enchimento=0.10,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TR 10644",
+            uso=UsoLaje.RESIDENCIAL_DORMITORIO,
+            g_revestimento=0.5,
+            modo=ModoCalculo.CATALOGO,
+        )
+        resultado = calcular(dados)
+        assert not resultado.aprovado
+        assert resultado.status == "rejected"
+        assert resultado.erros[0].code == "CATALOGO_FCK_INDISPONIVEL"
+
+
+class TestCaso09_CatalogoSemFckHomologado:
+    def test_catalogo_deve_respeitar_fck_da_matriz(self):
+        dados = DadosLaje(
+            vao=4.0,
+            intereixo=0.42,
+            h_enchimento=0.08,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=25.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TR 8644",
+            uso=UsoLaje.RESIDENCIAL_DORMITORIO,
+            g_revestimento=0.0,
+            modo=ModoCalculo.CATALOGO,
+        )
+        resultado = calcular(dados)
+        assert resultado.aprovado
+        assert resultado.catalogo is not None
+        assert resultado.catalogo.vao_tabelado == 4.0
+        assert resultado.catalogo.carga_total_kgf_m2 == pytest.approx(255.8, abs=0.5)
+        assert resultado.catalogo.reforco is not None
+        assert resultado.catalogo.reforco.diametro_mm == 4.2
+        assert resultado.catalogo.reforco.quantidade == 1
+
+
+class TestCaso10_CatalogoAceitaCodigoComercial:
+    def test_catalogo_deve_aceitar_codigo_tp_8_42(self):
+        dados = DadosLaje(
+            vao=3.5,
+            intereixo=0.42,
+            h_enchimento=0.08,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TP-8-42",
+            uso=UsoLaje.FORRO,
+            g_revestimento=0.0,
+            modo=ModoCalculo.CATALOGO,
+        )
+        resultado = calcular(dados)
+        assert resultado.aprovado
+        assert resultado.codigo_vigota == "TP-8-42"
+        assert resultado.catalogo is not None
+        assert resultado.catalogo.vao_tabelado == 3.5
+        assert resultado.catalogo.reforco is not None
+        assert resultado.catalogo.reforco.diametro_mm == 4.2
+        assert resultado.catalogo.reforco.quantidade == 1
+
+
+class TestCaso11_AliasResolveParaCodigoCanonico:
+    def test_catalogo_deve_aceitar_alias_tb_8l(self):
+        dados = DadosLaje(
+            vao=3.5,
+            intereixo=0.42,
+            h_enchimento=0.08,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TB 8L",
+            uso=UsoLaje.FORRO,
+            g_revestimento=0.0,
+            modo=ModoCalculo.CATALOGO,
+        )
+        resultado = calcular(dados)
+        assert resultado.aprovado
+        assert resultado.codigo_vigota == "TR 8644"
+        assert resultado.catalogo is not None
+        assert resultado.catalogo.vao_tabelado == 3.5
+
+
+class TestCaso12_CodigoSomenteCatalogoNaoPodeEntrarNoAnalitico:
+    def test_analitico_deve_bloquear_codigo_sem_secao_homologada(self):
+        with pytest.raises(ValueError, match="modo catálogo"):
+            calcular(
+                DadosLaje(
+                    vao=3.5,
+                    intereixo=0.42,
+                    h_enchimento=0.08,
+                    h_capa=0.04,
+                    largura_total=4.0,
+                    fck=20.0,
+                    classe_aco=ClasseAco.CA50,
+                    codigo_vigota="TP-8-42",
+                    uso=UsoLaje.FORRO,
+                    g_revestimento=0.0,
+                    modo=ModoCalculo.ANALITICO,
+                )
+            )
 
 
 # ---------------------------------------------------------------------------
-# Casos 5–10: TODO — elaborar com cálculo manual conforme Diretrizes §2
+# Casos 10–12: TODO — elaborar com cálculo manual conforme Diretrizes §2
 # ---------------------------------------------------------------------------

@@ -1,0 +1,19 @@
+uso_id,uso_categoria,subcategoria,carga_kn_m2,psi_0,psi_1,psi_2,depreciado,alias_de
+residencial_dormitorios_salas_cozinha,residencial,dormitorios / salas / cozinha,1.5,0.5,0.4,0.3,,
+residencial_banheiros,residencial,banheiros,1.5,0.5,0.4,0.3,,
+residencial_despensa_lavanderia,residencial,despensa / lavanderia,2.0,0.5,0.4,0.3,,
+residencial_corredores_uso_comum,residencial,corredores de uso comum,3.0,0.5,0.4,0.3,,
+comercial_escritorios_salas_gerais,comercial,escritorios / salas gerais,2.5,0.7,0.6,0.4,,
+comercial_sanitarios,comercial,sanitarios,2.5,0.7,0.6,0.4,,
+comercial_corredores_acesso_publico,comercial,corredores de acesso publico,3.0,0.7,0.6,0.4,,
+comercial_arquivos_deslizantes,comercial,arquivos deslizantes,5.0,0.7,0.6,0.4,,
+servico_forros_sem_acesso_pessoas,servico,forros sem acesso de pessoas,0.5,0.5,0.4,0.3,,
+servico_garagens_veiculos_leves,servico,garagens - veiculos leves,3.0,0.7,0.6,0.4,,
+educacao_salas_de_aula,educacao,salas de aula,3.0,0.7,0.6,0.4,,
+biblioteca_sala_de_leitura,biblioteca,sala de leitura,2.0,0.7,0.6,0.4,,
+biblioteca_sala_de_estantes,biblioteca,sala de estantes,6.0,0.7,0.6,0.4,,
+residencial_dormitorio,residencial,dormitorio (legado),1.5,0.5,0.4,0.3,true,residencial_dormitorios_salas_cozinha
+residencial_social,residencial,area social (legado),2.0,0.5,0.4,0.3,true,residencial_despensa_lavanderia
+comercial_escritorio,comercial,escritorio (legado qk=3.0),3.0,0.7,0.6,0.4,true,
+comercial_loja,comercial,loja (legado qk=4.0),4.0,0.7,0.6,0.4,true,
+forro,servico,forro (legado),0.5,0.5,0.4,0.2,true,servico_forros_sem_acesso_pessoas

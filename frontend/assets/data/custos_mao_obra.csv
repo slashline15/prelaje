@@ -1,0 +1,11 @@
+servico_codigo,descricao,unidade,preco_unitario,fonte,data_referencia,regiao
+montagem_laje_m2,Montagem de laje pre-moldada,m2,18.00,Sinapi,2026-04-09,AM
+lancamento_concreto_m3,Lancamento de concreto na capa,m3,85.00,Sinapi,2026-04-09,AM
+adensamento_concreto_m3,Adensamento vibratorio concreto,m3,25.00,Sinapi,2026-04-09,AM
+escoramento_m2,Montagem escoramento,m2,12.00,Sinapi,2026-04-09,AM
+desforma_m2,Desforma e remocao escoramento,m2,8.50,Sinapi,2026-04-09,AM
+aplicacao_tela_m2,Aplicacao tela de distribuicao,m2,5.50,Sinapi,2026-04-09,AM
+assentamento_vigota_m,Assentamento e alinhamento de vigota,m,2.80,Sinapi,2026-04-09,AM
+preenchimento_enchimento_m2,Preenchimento entre vigotas,m2,4.20,Sinapi,2026-04-09,AM
+acabamento_capa_m2,Acabamento superficie capa,m2,6.80,Sinapi,2026-04-09,AM
+corte_abertura_un,Corte abertura em laje pronta,unidade,45.00,Sinapi,2026-04-09,AM

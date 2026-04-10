@@ -13,11 +13,27 @@ from pydantic import BaseModel, Field, field_validator
 # ---------------------------------------------------------------------------
 
 class UsoLaje(str, Enum):
-    RESIDENCIAL_DORMITORIO = "residencial_dormitorio"  # qk = 1,5 kN/m²
-    RESIDENCIAL_SOCIAL     = "residencial_social"      # qk = 2,0 kN/m²
-    COMERCIAL_ESCRITORIO   = "comercial_escritorio"    # qk = 3,0 kN/m²
-    COMERCIAL_LOJA         = "comercial_loja"          # qk = 4,0 kN/m²
-    FORRO                  = "forro"                   # qk = 0,5 kN/m²
+    # Valores detalhados preferenciais
+    RESIDENCIAL_DORMITORIOS_SALAS_COZINHA = "residencial_dormitorios_salas_cozinha"
+    RESIDENCIAL_BANHEIROS = "residencial_banheiros"
+    RESIDENCIAL_DESPENSA_LAVANDERIA = "residencial_despensa_lavanderia"
+    RESIDENCIAL_CORREDORES_USO_COMUM = "residencial_corredores_uso_comum"
+    COMERCIAL_ESCRITORIOS_SALAS_GERAIS = "comercial_escritorios_salas_gerais"
+    COMERCIAL_SANITARIOS = "comercial_sanitarios"
+    COMERCIAL_CORREDORES_ACESSO_PUBLICO = "comercial_corredores_acesso_publico"
+    COMERCIAL_ARQUIVOS_DESLIZANTES = "comercial_arquivos_deslizantes"
+    SERVICO_FORROS_SEM_ACESSO_PESSOAS = "servico_forros_sem_acesso_pessoas"
+    SERVICO_GARAGENS_VEICULOS_LEVES = "servico_garagens_veiculos_leves"
+    EDUCACAO_SALAS_DE_AULA = "educacao_salas_de_aula"
+    BIBLIOTECA_SALA_DE_LEITURA = "biblioteca_sala_de_leitura"
+    BIBLIOTECA_SALA_DE_ESTANTES = "biblioteca_sala_de_estantes"
+
+    # Valores legados mantidos por compatibilidade de API
+    RESIDENCIAL_DORMITORIO = "residencial_dormitorio"  # -> residencial_dormitorios_salas_cozinha
+    RESIDENCIAL_SOCIAL     = "residencial_social"      # -> manter temporariamente
+    COMERCIAL_ESCRITORIO   = "comercial_escritorio"    # -> manter temporariamente
+    COMERCIAL_LOJA         = "comercial_loja"          # -> manter temporariamente
+    FORRO                  = "forro"                   # -> servico_forros_sem_acesso_pessoas
 
 
 class ClasseAco(str, Enum):
@@ -34,6 +50,17 @@ class TipoApoio(str, Enum):
 class ModoCalculo(str, Enum):
     CATALOGO  = "catalogo"
     ANALITICO = "analitico"
+
+
+class SeveridadeMensagem(str, Enum):
+    WARNING = "warning"
+    ERROR = "error"
+
+
+class StatusDimensionamento(str, Enum):
+    APPROVED = "approved"
+    APPROVED_WITH_WARNINGS = "approved_with_warnings"
+    REJECTED = "rejected"
 
 
 # ---------------------------------------------------------------------------
@@ -60,6 +87,7 @@ class DadosLaje(BaseModel):
     # Carregamento
     uso: UsoLaje = Field(..., description="Uso da laje para definição de carga acidental")
     g_revestimento: float = Field(0.0, ge=0, description="Carga permanente de revestimento (kN/m²)")
+    regiao: str = Field("AM", description="Região para preços de referência (ex: AM, SP)")
 
     # Análise
     tipo_apoio: TipoApoio = Field(TipoApoio.BIAPOIADA, description="Condição de apoio da viga")
@@ -110,6 +138,58 @@ class Quantitativos(BaseModel):
     peso_tela_kg: float = Field(..., description="Peso de tela soldada (kg)")
 
 
+class OrcamentoItem(BaseModel):
+    categoria: str
+    codigo: str
+    descricao: str
+    unidade: str
+    quantidade: float
+    quantidade_compra: float
+    unidade_compra: str
+    perda_percentual: float
+    preco_unitario: float
+    custo_total: float
+    observacoes: Optional[str] = None
+
+
+class OrcamentoResumo(BaseModel):
+    area_laje_m2: float
+    subtotal_materiais: float
+    subtotal_mao_obra: float
+    subtotal_direto: float
+    subtotal_indiretos: float
+    total_geral: float
+    custo_unitario_m2: float
+
+
+class ResumoComercialItem(BaseModel):
+    codigo: str
+    descricao: str
+    valor: float
+
+
+class ResumoComercial(BaseModel):
+    top_insumos: list[ResumoComercialItem]
+    total_geral: float
+    custo_unitario_m2: float
+    area_laje_m2: float
+    regiao: str
+    aviso_comercial: str = (
+        "Orcamento preliminar de referencia. Valores sujeitos a verificacao em obra."
+    )
+
+
+class OrcamentoResultado(BaseModel):
+    regiao: str
+    materiais: dict[str, OrcamentoItem] = Field(default_factory=dict)
+    mao_obra: dict[str, OrcamentoItem] = Field(default_factory=dict)
+    indiretos: dict[str, OrcamentoItem] = Field(default_factory=dict)
+    itens: list[OrcamentoItem]
+    resumo: OrcamentoResumo
+    resumo_comercial: Optional[ResumoComercial] = None
+    alertas: list[str] = Field(default_factory=list)
+
+
 class ArmaduraReforco(BaseModel):
     diametro_mm: float
     quantidade: int
@@ -122,6 +202,14 @@ class ResultadoCatalogo(BaseModel):
     reforco: Optional[ArmaduraReforco]
     escoramento_max_m: float
     dentro_do_catalogo: bool
+
+
+class MensagemSistema(BaseModel):
+    code: str
+    severity: SeveridadeMensagem
+    message: str
+    value: Optional[float] = None
+    limit: Optional[float] = None
 
 
 class ResultadoDimensionamento(BaseModel):
@@ -145,14 +233,17 @@ class ResultadoDimensionamento(BaseModel):
 
     # Quantitativos
     quantitativos: Quantitativos
+    orcamento: Optional[OrcamentoResultado] = None
 
     # Status geral
+    status: StatusDimensionamento
     aprovado: bool
-    alertas: list[str] = Field(default_factory=list)
-    erros: list[str] = Field(default_factory=list)
+    alertas: list[MensagemSistema] = Field(default_factory=list)
+    erros: list[MensagemSistema] = Field(default_factory=list)
 
     # Metadados para o disclaimer
     normas_utilizadas: list[str] = Field(
         default=["NBR 6118:2026", "NBR 6120:2019", "NBR 7481:2023"]
     )
+    engine_version: str = Field(default="0.3.0")
     parametros_validade: dict = Field(default_factory=dict)

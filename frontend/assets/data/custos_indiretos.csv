@@ -1,0 +1,11 @@
+codigo,descricao,tipo,valor,regiao,observacoes
+perda_eps,Perda e quebra EPS,percentual,3.5,AM,Perda media em transporte e montagem
+perda_concreto,Perda concreto na capa,percentual,2.0,AM,Desperdicio normal
+perda_tela,Perda tela soldada,percentual,2.5,AM,Corte e desperdicio
+perda_aco,Perda aco reforco,percentual,2.0,AM,Corte e amarracao
+frete_local,Frete e transporte local,percentual,5.0,AM,Do fornecedor ate obra
+bdi_simples,Beneficio e Despesa Indireta,percentual,25.0,AM,BDI comercial simplificado
+encargos_sociais,Encargos sociais e trabalhistas,percentual,80.0,AM,13o salario + FGTS + INSS
+margem_lucro,Margem de lucro,percentual,15.0,AM,Lucro bruto da obra
+dificuldade_acesso,Dificuldade de acesso local,percentual,8.0,AM,Regioes remotas
+sazonalidade_chuva,Sazonalidade/risco chuva,percentual,3.0,AM,Obra em periodo chuvoso
