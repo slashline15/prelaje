@@ -22,6 +22,7 @@ class WizardSelections {
     this.uso,
     this.revestimento,
     this.modo = 'catalogo',
+    this.hCapa = 0.025,
     this.fck = 20.0,
     this.classeAco = 'CA-50',
     this.tipoApoio = 'biapoiada',
@@ -33,6 +34,7 @@ class WizardSelections {
   final CargaUsoReferenciaDto? uso;
   final RevestimentoReferenciaDto? revestimento;
   final String modo;
+  final double hCapa;
   final double fck;
   final String classeAco;
   final String tipoApoio;
@@ -44,6 +46,7 @@ class WizardSelections {
     if (vigota == null) return 'Selecione a vigota.';
     if (uso == null) return 'Selecione o uso da laje.';
     if (revestimento == null) return 'Selecione o acabamento.';
+    if (hCapa < 0.025) return 'A capa mínima é 2,5 cm.';
     return null;
   }
 
@@ -57,8 +60,8 @@ class WizardSelections {
       // h_enchimento default do catálogo: 8 cm (0.08 m). Pode ser exposto
       // depois como step avançado.
       hEnchimento: 0.08,
-      // h_capa mínimo normativo: 4 cm. Default do catálogo.
-      hCapa: v.capaMinCm / 100.0,
+      // Capa mínima normativa: 2,5 cm. Pode ser ajustada no passo de dimensões.
+      hCapa: hCapa,
       larguraTotal: larguraTotal,
       fck: fck,
       classeAco: classeAco,
@@ -77,6 +80,7 @@ class WizardSelections {
     CargaUsoReferenciaDto? uso,
     RevestimentoReferenciaDto? revestimento,
     String? modo,
+    double? hCapa,
     double? fck,
     String? classeAco,
     String? tipoApoio,
@@ -88,6 +92,7 @@ class WizardSelections {
         uso: uso ?? this.uso,
         revestimento: revestimento ?? this.revestimento,
         modo: modo ?? this.modo,
+        hCapa: hCapa ?? this.hCapa,
         fck: fck ?? this.fck,
         classeAco: classeAco ?? this.classeAco,
         tipoApoio: tipoApoio ?? this.tipoApoio,
@@ -120,6 +125,42 @@ class WizardController extends ChangeNotifier {
   List<CargaUsoReferenciaDto> get usos => _usos;
   List<RevestimentoReferenciaDto> get revestimentos => _revestimentos;
 
+  VigotaReferenciaDto? get vigotaRecomendada {
+    if (_vigotas.isEmpty) return null;
+    final candidatas = _vigotas
+        .where(
+          (v) =>
+              v.disponivelCatalogo &&
+              v.vaoMaxM >= _selections.vao &&
+              v.fckCatalogoMpa.contains(_selections.fck),
+        )
+        .toList()
+      ..sort((a, b) {
+        final porVao = b.vaoMaxM.compareTo(a.vaoMaxM);
+        if (porVao != 0) return porVao;
+        return b.hVigotaCm.compareTo(a.hVigotaCm);
+      });
+    if (candidatas.isNotEmpty) return candidatas.first;
+
+    final porVao = _vigotas
+        .where((v) => v.vaoMaxM >= _selections.vao && v.disponivelCatalogo)
+        .toList()
+      ..sort((a, b) {
+        final porVao = b.vaoMaxM.compareTo(a.vaoMaxM);
+        if (porVao != 0) return porVao;
+        return b.hVigotaCm.compareTo(a.hVigotaCm);
+      });
+    if (porVao.isNotEmpty) return porVao.first;
+
+    return _vigotas.first;
+  }
+
+  double get hCapaRecomendada {
+    final recomendada = vigotaRecomendada;
+    if (recomendada == null) return 0.025;
+    return (recomendada.capaMinCm / 100.0).clamp(0.025, 0.20);
+  }
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -147,11 +188,12 @@ class WizardController extends ChangeNotifier {
       _usos = results[1] as List<CargaUsoReferenciaDto>;
       _revestimentos = results[2] as List<RevestimentoReferenciaDto>;
 
-      // Pré-selecionar defaults sensatos
       _selections = WizardSelections(
-        vigota: _vigotas.isNotEmpty ? _vigotas.first : null,
+        vigota: _vigotas.isNotEmpty ? vigotaRecomendada ?? _vigotas.first : null,
         uso: _usos.isNotEmpty ? _usos.first : null,
         revestimento: _revestimentos.isNotEmpty ? _revestimentos.first : null,
+        modo: 'catalogo',
+        hCapa: hCapaRecomendada,
       );
 
       _setState(WizardLoadState.refsLoaded);
@@ -167,6 +209,7 @@ class WizardController extends ChangeNotifier {
 
   void updateVao(double value) {
     _selections = _selections.copyWith(vao: value.clamp(0.5, 10.0));
+    _syncAutomaticSelections();
     notifyListeners();
   }
 
@@ -192,6 +235,12 @@ class WizardController extends ChangeNotifier {
 
   void setModo(String modo) {
     _selections = _selections.copyWith(modo: modo);
+    _syncAutomaticSelections();
+    notifyListeners();
+  }
+
+  void updateHCapa(double value) {
+    _selections = _selections.copyWith(hCapa: value.clamp(0.025, 0.20));
     notifyListeners();
   }
 
@@ -223,6 +272,23 @@ class WizardController extends ChangeNotifier {
   void resetResultado() {
     _resultado = null;
     notifyListeners();
+  }
+
+  void _syncAutomaticSelections() {
+    if (_selections.modo == 'catalogo') {
+      final recomendada = vigotaRecomendada;
+      if (recomendada != null) {
+        _selections = _selections.copyWith(
+          vigota: recomendada,
+          hCapa: recomendada.capaMinCm / 100.0,
+        );
+      }
+      return;
+    }
+
+    if (_selections.vigota == null && _vigotas.isNotEmpty) {
+      _selections = _selections.copyWith(vigota: _vigotas.first);
+    }
   }
 
   void _setState(WizardLoadState newState) {

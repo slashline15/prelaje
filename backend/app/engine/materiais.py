@@ -438,6 +438,7 @@ VIGOTA_ALIAS_EXPLICITO: tuple[tuple[str, str], ...] = (
     ("TB 30M", "TR 30856"),
     ("TB 30R", "TR 30858"),
     ("TR 30R", "TR 30858"),
+    ("TR644", "TR 8644"),
 )
 
 
@@ -459,6 +460,53 @@ def normalizar_codigo_vigota(codigo: str) -> str:
     return codigo_normalizado
 
 
+def _vigota_generica_para_trelica(codigo: str) -> DadosVigota:
+    """
+    Fallback tolerante para códigos de treliça que existem na taxonomia,
+    mas ainda não foram cadastrados na tabela comercial de vigotas.
+
+    Isso evita 500 em integrações legadas e permite que o motor siga
+    retornando um erro normativo/comercial explícito, em vez de quebrar
+    no acesso ao dicionário.
+    """
+    referencia = next(
+        (
+            item
+            for item in TRELICAS_REFERENCIA
+            if item.designacao == codigo or item.modelo == codigo
+        ),
+        None,
+    )
+    if referencia is None:
+        raise ValueError(
+            f"Vigota '{codigo}' não encontrada. "
+            f"Opções canônicas: {list(VIGOTAS_REFERENCIA.keys())}"
+        )
+
+    h_vigota_cm = referencia.altura_mm / 10.0
+    vao_max_por_altura = {
+        8.0: 4.5,
+        10.0: 6.0,
+        12.0: 6.0,
+        16.0: 7.5,
+        20.0: 8.5,
+        25.0: 10.0,
+        30.0: 11.5,
+    }
+
+    return DadosVigota(
+        codigo=codigo,
+        h_vigota=h_vigota_cm,
+        b_nerv=12.5,
+        intereixo=42.0,
+        As_base=0.0,
+        fck_vigota=35.0,
+        vao_max=vao_max_por_altura.get(h_vigota_cm, max(4.5, h_vigota_cm * 0.4)),
+        capa_min=5.0 if h_vigota_cm >= 12.0 else 4.0,
+        homologada_analitico=False,
+    )
+
+
 def aliases_por_codigo() -> dict[str, list[str]]:
     aliases: dict[str, list[str]] = {codigo: [] for codigo in VIGOTAS_REFERENCIA}
     for alias, canonico in VIGOTA_ALIAS_EXPLICITO:
@@ -472,7 +520,9 @@ def aliases_por_codigo() -> dict[str, list[str]]:
 
 def get_vigota(codigo: str, *, modo: str = "analitico") -> DadosVigota:
     codigo_canonico = normalizar_codigo_vigota(codigo)
-    vigota = VIGOTAS_REFERENCIA[codigo_canonico]
+    vigota = VIGOTAS_REFERENCIA.get(codigo_canonico)
+    if vigota is None:
+        vigota = _vigota_generica_para_trelica(codigo_canonico)
     if modo == "analitico" and not vigota.homologada_analitico:
         raise ValueError(
             f"Vigota '{codigo}' resolve para '{codigo_canonico}', "

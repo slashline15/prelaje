@@ -126,7 +126,7 @@ class TestCaso03_TravaCapa:
                 vao=4.0,
                 intereixo=0.42,
                 h_enchimento=0.08,
-                h_capa=0.03,   # < 4cm → deve falhar
+                h_capa=0.02,   # < 2.5cm → deve falhar
                 largura_total=4.0,
                 fck=20.0,
                 classe_aco=ClasseAco.CA50,
@@ -134,6 +134,22 @@ class TestCaso03_TravaCapa:
                 uso=UsoLaje.RESIDENCIAL_DORMITORIO,
                 g_revestimento=0.0,
             )
+
+    def test_capa_minima_25cm_aceita(self):
+        dados = DadosLaje(
+            vao=4.0,
+            intereixo=0.42,
+            h_enchimento=0.08,
+            h_capa=0.025,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TR 8644",
+            uso=UsoLaje.RESIDENCIAL_DORMITORIO,
+            g_revestimento=0.0,
+        )
+
+        assert dados.h_capa == pytest.approx(0.025)
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +174,8 @@ class TestCaso04_TravaVaoMaximo:
         assert not resultado.aprovado
         assert len(resultado.erros) > 0
         assert resultado.erros[0].code == "L_MAX_CATALOGO"
+        assert resultado.quantitativos.n_vigotas == 0
+        assert resultado.orcamento is None
 
 
 class TestCaso05_IntereixoIncompativel:
@@ -201,7 +219,8 @@ class TestCaso06_ModoCatalogo:
         assert resultado.status == "approved_with_warnings"
         assert resultado.catalogo is not None
         assert resultado.catalogo.vao_tabelado == 3.5
-        assert resultado.catalogo.carga_total_kgf_m2 == pytest.approx(153.5, abs=0.5)
+        # Sobrecarga = (g_rev + q_k) * 101.97 = (0 + 0.5) * 101.97 ≈ 51.0
+        assert resultado.catalogo.carga_total_kgf_m2 == pytest.approx(51.0, abs=0.5)
         assert resultado.catalogo.reforco is not None
         assert resultado.catalogo.reforco.diametro_mm == 4.2
         assert resultado.catalogo.reforco.quantidade == 1
@@ -231,13 +250,14 @@ class TestCaso07_CargaForaCatalogo:
 
 class TestCaso08_CatalogoIndisponivel:
     def test_vigota_sem_matriz_homologada_rejeita(self):
+        # fck=30 não existe no catálogo para TR 10644
         dados = DadosLaje(
             vao=4.0,
             intereixo=0.42,
             h_enchimento=0.10,
             h_capa=0.04,
             largura_total=4.0,
-            fck=20.0,
+            fck=30.0,
             classe_aco=ClasseAco.CA50,
             codigo_vigota="TR 10644",
             uso=UsoLaje.RESIDENCIAL_DORMITORIO,
@@ -269,7 +289,8 @@ class TestCaso09_CatalogoSemFckHomologado:
         assert resultado.aprovado
         assert resultado.catalogo is not None
         assert resultado.catalogo.vao_tabelado == 4.0
-        assert resultado.catalogo.carga_total_kgf_m2 == pytest.approx(255.8, abs=0.5)
+        # Sobrecarga = (g_rev + q_k) * 101.97 = (0 + 1.5) * 101.97 ≈ 153.0
+        assert resultado.catalogo.carga_total_kgf_m2 == pytest.approx(153.0, abs=0.5)
         assert resultado.catalogo.reforco is not None
         assert resultado.catalogo.reforco.diametro_mm == 4.2
         assert resultado.catalogo.reforco.quantidade == 1
@@ -320,6 +341,25 @@ class TestCaso11_AliasResolveParaCodigoCanonico:
         assert resultado.codigo_vigota == "TR 8644"
         assert resultado.catalogo is not None
         assert resultado.catalogo.vao_tabelado == 3.5
+
+    def test_catalogo_deve_aceitar_alias_tr644(self):
+        dados = DadosLaje(
+            vao=3.5,
+            intereixo=0.42,
+            h_enchimento=0.08,
+            h_capa=0.04,
+            largura_total=4.0,
+            fck=20.0,
+            classe_aco=ClasseAco.CA50,
+            codigo_vigota="TR644",
+            uso=UsoLaje.FORRO,
+            g_revestimento=0.0,
+            modo=ModoCalculo.CATALOGO,
+        )
+        resultado = calcular(dados)
+        assert resultado.aprovado
+        assert resultado.codigo_vigota == "TR 8644"
+        assert resultado.catalogo is not None
 
 
 class TestCaso12_CodigoSomenteCatalogoNaoPodeEntrarNoAnalitico:

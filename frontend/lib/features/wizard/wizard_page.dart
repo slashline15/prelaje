@@ -323,7 +323,7 @@ class _ChoiceStep<T> extends StatelessWidget {
                   border: Border.all(
                     color: item == selected
                         ? const Color(0xFFC77C52)
-                        : Colors.black.withValues(alpha: 0.05),
+                : Colors.black.withOpacity(0.05),
                   ),
                 ),
                 child: Row(

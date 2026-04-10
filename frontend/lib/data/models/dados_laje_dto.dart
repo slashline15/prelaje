@@ -15,7 +15,7 @@ class DadosLajeDto {
     required this.uso,
     this.gRevestimento = 0.0,
     this.tipoApoio = 'biapoiada',
-    this.modo = 'catalogo',
+    this.modo = 'analitico',
   });
 
   /// Vão livre entre apoios (m). Validação: 0 < vao ≤ 10.0
@@ -27,7 +27,7 @@ class DadosLajeDto {
   /// Altura do enchimento EPS/cerâmica (m).
   final double hEnchimento;
 
-  /// Espessura da capa de concreto (m). Mínimo: 0.04 (NBR 6118).
+  /// Espessura da capa de concreto (m). Mínimo: 0.025 (NBR 6118).
   final double hCapa;
 
   /// Largura total da laje (m).

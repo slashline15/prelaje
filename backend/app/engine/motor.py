@@ -8,6 +8,7 @@ import math
 from ..schemas import (
     DadosLaje, ResultadoDimensionamento, ModoCalculo, TipoApoio,
     VerificacaoELU, VerificacaoELS, Quantitativos,
+    ResultadoCatalogo, ArmaduraReforco,
     MensagemSistema, SeveridadeMensagem, StatusDimensionamento,
 )
 from .materiais import get_vigota, modulo_elasticidade_secante
@@ -16,7 +17,7 @@ from .catalogo import (
     CATALOGO_VERSION,
     CatalogoLookupError,
     buscar_solucao_catalogo,
-    carga_total_catalogo_kgf_m2,
+    sobrecarga_catalogo_kgf_m2,
 )
 from .analise_estrutural import esforcos_biapoiada, esforcos_continua
 from .orcamento import calcular_orcamento_preliminar
@@ -135,14 +136,30 @@ def calcular(dados: DadosLaje) -> ResultadoDimensionamento:
     quant = _calcular_quantitativos(dados, b_nerv_m)
 
     if dados.modo == ModoCalculo.CATALOGO:
+        # Em catálogo, usar a capa mínima da vigota se o usuário informou menos
+        capa_catalogo_cm = max(dados.h_capa * 100.0, vigota.capa_min)
+        if capa_catalogo_cm > dados.h_capa * 100.0 + 0.1:
+            alertas.append(
+                _alerta(
+                    "CAPA_AJUSTADA_CATALOGO",
+                    f"Capa ajustada de {dados.h_capa*100:.1f} cm para "
+                    f"{capa_catalogo_cm:.1f} cm (mínimo da vigota {vigota.codigo}).",
+                    value=dados.h_capa * 100.0,
+                    limit=capa_catalogo_cm,
+                )
+            )
+
+        # Catálogos brasileiros informam sobrecarga útil (exclui peso próprio)
+        sobrecarga = sobrecarga_catalogo_kgf_m2(dados.g_revestimento, cargas.q_k)
+
         try:
             solucao = buscar_solucao_catalogo(
                 vigota.codigo,
                 dados.fck,
                 dados.intereixo * 100.0,
-                dados.h_capa * 100.0,
+                capa_catalogo_cm,
                 dados.vao,
-                carga_total_catalogo_kgf_m2(cargas.g_k, cargas.q_k),
+                sobrecarga,
             )
         except CatalogoLookupError as exc:
             erros.append(
@@ -176,6 +193,22 @@ def calcular(dados: DadosLaje) -> ResultadoDimensionamento:
             )
         )
 
+        catalogo_resultado = ResultadoCatalogo(
+            vao_tabelado=solucao.vao_tabelado,
+            carga_total_kgf_m2=solucao.carga_total_kgf_m2,
+            reforco=(
+                None
+                if solucao.reforco is None
+                else ArmaduraReforco(
+                    diametro_mm=solucao.reforco.diametro_mm,
+                    quantidade=solucao.reforco.quantidade,
+                    as_total_cm2=solucao.reforco.as_total_cm2,
+                )
+            ),
+            escoramento_max_m=solucao.escoramento_max_m,
+            dentro_do_catalogo=solucao.dentro_do_catalogo,
+        )
+
         resultado = ResultadoDimensionamento(
             modo=dados.modo,
             codigo_vigota=vigota.codigo,
@@ -183,21 +216,7 @@ def calcular(dados: DadosLaje) -> ResultadoDimensionamento:
             q_k=cargas.q_k,
             q_sd=cargas.q_sd,
             q_ser=cargas.q_ser,
-            catalogo={
-                "vao_tabelado": solucao.vao_tabelado,
-                "carga_total_kgf_m2": solucao.carga_total_kgf_m2,
-                "reforco": (
-                    None
-                    if solucao.reforco is None
-                    else {
-                        "diametro_mm": solucao.reforco.diametro_mm,
-                        "quantidade": solucao.reforco.quantidade,
-                        "as_total_cm2": solucao.reforco.as_total_cm2,
-                    }
-                ),
-                "escoramento_max_m": solucao.escoramento_max_m,
-                "dentro_do_catalogo": solucao.dentro_do_catalogo,
-            },
+            catalogo=catalogo_resultado,
             quantitativos=quant,
             status=StatusDimensionamento.APPROVED_WITH_WARNINGS,
             aprovado=True,
@@ -375,6 +394,26 @@ def calcular(dados: DadosLaje) -> ResultadoDimensionamento:
             "intereixo_catalogo_cm": vigota.intereixo,
         },
     )
+    if not aprovado:
+        erros.append(
+            _erro(
+                "DIMENSIONAMENTO_REJEITADO",
+                "Resultado rejeitado pelas verificações do motor.",
+            )
+        )
+        return _resultado_bloqueado(
+            dados,
+            erros,
+            cargas=cargas,
+            parametros_validade={
+                "fck": dados.fck,
+                "aco": dados.classe_aco.value,
+                "vigota": vigota.codigo,
+                "intereixo_cm": round(dados.intereixo * 100.0, 1),
+                "intereixo_catalogo_cm": vigota.intereixo,
+            },
+        )
+
     try:
         resultado.orcamento = calcular_orcamento_preliminar(
             dados,

@@ -69,7 +69,7 @@ class _SummaryCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF3E5D49), Color(0xFF6E8A64)],
+          colors: [Color(0xFF1D2622), Color(0xFF9F541F)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -88,7 +88,7 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Você tem $projectCount projeto(s) salvo(s) neste aparelho.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+            style: TextStyle(color: Colors.white.withOpacity(0.9)),
           ),
         ],
       ),
@@ -103,11 +103,13 @@ class _EmptyHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,15 +135,16 @@ class _ProjectTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final currency = NumberFormat.simpleCurrency(locale: 'pt_BR');
     final date = DateFormat('dd/MM/yyyy').format(project.createdAt);
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'data/repositories/dimensionamento_repository.dart';
 import 'features/history/history_page.dart';
-import 'features/history/project_store.dart';
 import 'features/home/home_page.dart';
 import 'features/profile/profile_page.dart';
 import 'features/profile/profile_store.dart';
@@ -19,6 +18,8 @@ class PrelajeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Prelaje',
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
       home: const _BootstrapGate(),
     );
   }
@@ -93,22 +94,28 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFF7F1E8), Color(0xFFE6DDCF)],
+            colors: [Color(0xFF120F0D), Color(0xFF251B15)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(),
+              CircularProgressIndicator(color: scheme.primary),
               SizedBox(height: 16),
-              Text('Carregando o canteiro...'),
+              Text(
+                'Carregando o canteiro...',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurface,
+                    ),
+              ),
             ],
           ),
         ),

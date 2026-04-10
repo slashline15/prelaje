@@ -1,4 +1,4 @@
-package br.com.prelaje.prelaje_tmp
+package br.com.prelaje.prelaje
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -15,8 +15,8 @@ class ApiClient {
 
   final http.Client _client;
 
-  Uri _uri(String path) =>
-      Uri.parse('${AppConfig.baseUrl}${AppConfig.apiPrefix}$path');
+  Uri _uri(String baseUrl, String path) =>
+      Uri.parse('$baseUrl${AppConfig.apiPrefix}$path');
 
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -25,53 +25,56 @@ class ApiClient {
 
   /// GET — retorna dynamic (Map ou List decodificado).
   Future<dynamic> get(String path) async {
-    try {
-      final response = await _client
-          .get(_uri(path), headers: _headers)
-          .timeout(AppConfig.requestTimeout);
-      return _decode(response);
-    } on SocketException {
-      throw const NetworkException();
-    } on http.ClientException {
-      throw const NetworkException();
-    } on TimeoutException {
-      throw const TimeoutException();
-    }
+    final response = await _requestWithFallback(
+      path,
+      (uri) => _client.get(uri, headers: _headers),
+    );
+    return _decode(response);
   }
 
   /// POST JSON — retorna dynamic.
   Future<dynamic> post(String path, Map<String, dynamic> body) async {
-    try {
-      final response = await _client
-          .post(_uri(path), headers: _headers, body: jsonEncode(body))
-          .timeout(AppConfig.requestTimeout);
-      return _decode(response);
-    } on SocketException {
-      throw const NetworkException();
-    } on http.ClientException {
-      throw const NetworkException();
-    } on TimeoutException {
-      throw const TimeoutException();
-    }
+    final response = await _requestWithFallback(
+      path,
+      (uri) => _client.post(uri, headers: _headers, body: jsonEncode(body)),
+    );
+    return _decode(response);
   }
 
   /// POST que retorna bytes crus (para download de PDF).
   Future<List<int>> postBytes(String path, Map<String, dynamic> body) async {
-    try {
-      final response = await _client
-          .post(_uri(path), headers: _headers, body: jsonEncode(body))
-          .timeout(AppConfig.requestTimeout);
-      if (response.statusCode != 200) {
-        _throwApiError(response);
+    final response = await _requestWithFallback(
+      path,
+      (uri) => _client.post(uri, headers: _headers, body: jsonEncode(body)),
+    );
+    if (response.statusCode != 200) {
+      _throwApiError(response);
+    }
+    return response.bodyBytes.toList();
+  }
+
+  Future<http.Response> _requestWithFallback(
+    String path,
+    Future<http.Response> Function(Uri uri) request,
+  ) async {
+    Object? lastError;
+    for (final baseUrl in AppConfig.baseUrlCandidates) {
+      try {
+        return await request(_uri(baseUrl, path))
+            .timeout(AppConfig.requestTimeout);
+      } on SocketException catch (error) {
+        lastError = error;
+      } on http.ClientException catch (error) {
+        lastError = error;
+      } on TimeoutException catch (error) {
+        lastError = error;
       }
-      return response.bodyBytes.toList();
-    } on SocketException {
-      throw const NetworkException();
-    } on http.ClientException {
-      throw const NetworkException();
-    } on TimeoutException {
+    }
+
+    if (lastError is TimeoutException) {
       throw const TimeoutException();
     }
+    throw const NetworkException();
   }
 
   dynamic _decode(http.Response response) {

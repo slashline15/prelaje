@@ -20,6 +20,7 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Prelaje'),
@@ -81,14 +82,15 @@ class HomePage extends StatelessWidget {
               if (recent.isEmpty)
                 _EmptyState(onStartNewProject: onStartNewProject)
               else
-                ...recent.map(
+              ...recent.map(
                   (project) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: scheme.surface,
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
                       ),
                       child: Row(
                         children: [
@@ -137,11 +139,12 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF3E5D49), Color(0xFFC77C52)],
+          colors: [Color(0xFF1D2622), Color(0xFF9F541F)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -160,7 +163,7 @@ class _HeroCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Vamos fechar uma laje sem depender de servidor.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+            style: TextStyle(color: Colors.white.withOpacity(0.9)),
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -169,7 +172,10 @@ class _HeroCard extends StatelessWidget {
             children: [
               FilledButton(
                 onPressed: onStartNewProject,
-                style: FilledButton.styleFrom(backgroundColor: Colors.white),
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
+                ),
                 child: const Text('Nova laje'),
               ),
               OutlinedButton(
@@ -201,11 +207,13 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: accent ? const Color(0xFFFCF0E8) : Colors.white,
+        color: accent ? scheme.primary.withOpacity(0.12) : scheme.surface,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,11 +239,13 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -53,6 +53,9 @@ class ResultadoController extends ChangeNotifier {
 
   /// Texto do status para exibição ao empreiteiro (sem jargão técnico).
   String get statusLabel {
+    if (!_resultado.aprovado) {
+      return 'Cálculo bloqueado - revise os limites';
+    }
     switch (_resultado.status) {
       case 'approved':
         return 'Laje dentro do catálogo';

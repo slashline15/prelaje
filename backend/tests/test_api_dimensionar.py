@@ -30,3 +30,28 @@ def test_orcamento_basico_retorna_campos_obrigatorios():
     assert data["orcamento"]["resumo"]["total_geral"] > 0
     assert data["orcamento"]["resumo_comercial"] is not None
     assert len(data["orcamento"]["resumo_comercial"]["top_insumos"]) == 5
+
+
+def test_dimensionar_rejeitado_nao_expoe_resultado_como_aprovado():
+    payload = {
+        "vao": 7.0,
+        "intereixo": 0.42,
+        "h_enchimento": 0.08,
+        "h_capa": 0.04,
+        "largura_total": 4.0,
+        "fck": 20.0,
+        "classe_aco": "CA-50",
+        "codigo_vigota": "TR 8644",
+        "uso": "residencial_dormitorio",
+        "g_revestimento": 0.5,
+        "modo": "analitico",
+    }
+
+    response = client.post("/api/v1/dimensionar", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["aprovado"] is False
+    assert data["status"] == "rejected"
+    assert data["quantitativos"]["n_vigotas"] == 0
+    assert data["orcamento"] is None

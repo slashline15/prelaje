@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
+import 'dart:typed_data';
 
 import '../../data/models/dados_laje_dto.dart';
 import '../../data/models/mensagem_sistema_dto.dart';
 import '../../data/models/resultado_dimensionamento_dto.dart';
 import '../../data/repositories/dimensionamento_repository.dart';
+import '../history/project_store.dart';
 import '../profile/profile_store.dart';
 import 'resultado_controller.dart';
 
@@ -28,6 +31,30 @@ class ResultadoPage extends StatefulWidget {
 
 class _ResultadoPageState extends State<ResultadoPage> {
   @override
+  void initState() {
+    super.initState();
+    unawaited(_saveHistory());
+  }
+
+  Future<void> _saveHistory() async {
+    final resumo = widget.resultado.orcamento?.resumo;
+    await ProjectStore.saveFromCalculation(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: 'Laje ${widget.dados.vao.toStringAsFixed(2)} x ${widget.dados.larguraTotal.toStringAsFixed(2)} m',
+      createdAt: DateTime.now(),
+      areaM2: widget.dados.vao * widget.dados.larguraTotal,
+      estimatedMin: resumo?.totalGeral ?? 0.0,
+      estimatedMax: resumo?.totalGeral ?? 0.0,
+      usageLabel: widget.dados.uso.replaceAll('_', ' '),
+      vigotaLabel: widget.dados.codigoVigota,
+      finishLabel: 'Capa ${widget.dados.hCapa.toStringAsFixed(2)} m',
+      summary: widget.resultado.aprovado
+          ? 'Resultado aprovado'
+          : 'Cálculo bloqueado, revisar erros',
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => ResultadoController(
@@ -35,24 +62,19 @@ class _ResultadoPageState extends State<ResultadoPage> {
         resultado: widget.resultado,
         dados: widget.dados,
       ),
-      child: _ResultadoPageContent(
-        profile: widget.profile,
-      ),
+      child: const _ResultadoPageContent(),
     );
   }
 }
 
 class _ResultadoPageContent extends StatelessWidget {
-  const _ResultadoPageContent({
-    required this.profile,
-  });
-
-  final UserProfile profile;
+  const _ResultadoPageContent();
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ResultadoController>();
     final currency = NumberFormat.simpleCurrency(locale: 'pt_BR');
+    final blocked = !controller.resultado.aprovado || controller.resultado.hasErrors;
 
     return Scaffold(
       appBar: AppBar(
@@ -66,24 +88,26 @@ class _ResultadoPageContent extends StatelessWidget {
           _StatusBanner(controller: controller),
           const SizedBox(height: 20),
 
-          // 2. Card "Estimativa de Custo"
-          if (controller.totalOrcamento != null)
-            _CostEstimateCard(
-              controller: controller,
-              currency: currency,
+          if (blocked) ...[
+            _BloqueioCard(resultado: controller.resultado),
+            const SizedBox(height: 20),
+          ] else ...[
+            if (controller.totalOrcamento != null) ...[
+              _CostEstimateCard(
+                controller: controller,
+                currency: currency,
+              ),
+              const SizedBox(height: 20),
+            ],
+            _QuantitativosCard(
+              resultado: controller.resultado,
             ),
-          const SizedBox(height: 20),
-
-          // 3. Card "Quantitativos"
-          _QuantitativosCard(
-            resultado: controller.resultado,
-          ),
-          const SizedBox(height: 20),
-
-          // 4. Card "Verificações" (só se houver ELU)
-          if (controller.resultado.elu != null)
-            _VerificacoesCard(resultado: controller.resultado),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+            if (controller.resultado.elu != null) ...[
+              _VerificacoesCard(resultado: controller.resultado),
+              const SizedBox(height: 20),
+            ],
+          ],
 
           // 5. Alertas
           if (controller.resultado.alertas.isNotEmpty)
@@ -95,8 +119,7 @@ class _ResultadoPageContent extends StatelessWidget {
             _ErrosCard(erros: controller.resultado.erros),
           const SizedBox(height: 20),
 
-          // 7. Botão "Gerar PDF"
-          _PdfButton(controller: controller),
+          _PdfButton(controller: controller, blocked: blocked),
           const SizedBox(height: 12),
 
           // 8. Botão "Novo cálculo"
@@ -194,6 +217,7 @@ class _CostEstimateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final total = controller.totalOrcamento ?? 0.0;
     final unitario = controller.custoUnitarioM2 ?? 0.0;
     final resumo = controller.resultado.orcamento?.resumo;
@@ -201,9 +225,9 @@ class _CostEstimateCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,7 +244,7 @@ class _CostEstimateCard extends StatelessWidget {
             currency.format(total),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF3E5D49),
+                  color: scheme.primary,
                 ),
           ),
           const SizedBox(height: 12),
@@ -244,7 +268,7 @@ class _CostEstimateCard extends StatelessWidget {
           Text(
             '${currency.format(unitario)}/m²',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
           ),
@@ -294,14 +318,15 @@ class _QuantitativosCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final q = resultado.quantitativos;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,15 +389,16 @@ class _VerificacoesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final elu = resultado.elu!;
     final els = resultado.els;
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,7 +469,7 @@ class _VerificacaoChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: fgColor.withValues(alpha: 0.3)),
+        border: Border.all(color: fgColor.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -472,25 +498,26 @@ class _AlertasCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3E0),
+        color: scheme.secondaryContainer.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.amber.shade300),
+        border: Border.all(color: scheme.secondary.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info, color: Colors.amber.shade700),
+              Icon(Icons.info, color: scheme.secondary),
               const SizedBox(width: 10),
               Text(
                 'Alertas',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: Colors.amber.shade700,
+                      color: scheme.secondary,
                     ),
               ),
             ],
@@ -502,7 +529,7 @@ class _AlertasCard extends StatelessWidget {
               child: Text(
                 alerta.message,
                 style: TextStyle(
-                  color: Colors.amber.shade900,
+                  color: scheme.onSurface,
                   fontSize: 13,
                 ),
               ),
@@ -522,25 +549,26 @@ class _ErrosCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEE),
+        color: scheme.errorContainer.withOpacity(0.55),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.shade300),
+        border: Border.all(color: scheme.error.withOpacity(0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.error, color: Colors.red.shade700),
+              Icon(Icons.error, color: scheme.error),
               const SizedBox(width: 10),
               Text(
                 'Erros',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: Colors.red.shade700,
+                      color: scheme.error,
                     ),
               ),
             ],
@@ -552,7 +580,7 @@ class _ErrosCard extends StatelessWidget {
               child: Text(
                 erro.message,
                 style: TextStyle(
-                  color: Colors.red.shade900,
+                  color: scheme.onSurface,
                   fontSize: 13,
                 ),
               ),
@@ -564,11 +592,68 @@ class _ErrosCard extends StatelessWidget {
   }
 }
 
+/// Card de bloqueio quando o cálculo falha.
+class _BloqueioCard extends StatelessWidget {
+  const _BloqueioCard({required this.resultado});
+
+  final ResultadoDimensionamentoDto resultado;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final mensagens = resultado.erros.isNotEmpty ? resultado.erros : resultado.alertas;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: scheme.errorContainer.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.error.withOpacity(0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lock_outline, color: scheme.error),
+              const SizedBox(width: 10),
+              Text(
+                'Cálculo bloqueado',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.error,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'O cálculo não avançou para orçamento nem para quantitativos finais. Revise os limites informados.',
+          ),
+          if (mensagens.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ...mensagens.map(
+              (msg) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text('• ${msg.message}'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Botão "Gerar PDF"
 class _PdfButton extends StatelessWidget {
-  const _PdfButton({required this.controller});
+  const _PdfButton({
+    required this.controller,
+    required this.blocked,
+  });
 
   final ResultadoController controller;
+  final bool blocked;
 
   @override
   Widget build(BuildContext context) {
@@ -582,7 +667,7 @@ class _PdfButton extends StatelessWidget {
                 width: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Text('Gerar PDF'),
+            : Text(blocked ? 'Gerar relatório de bloqueio' : 'Gerar PDF'),
       ),
     );
   }
@@ -593,7 +678,7 @@ class _PdfButton extends StatelessWidget {
     if (controller.isPdfReady && controller.pdfBytes != null) {
       try {
         await Printing.sharePdf(
-          bytes: controller.pdfBytes!,
+          bytes: Uint8List.fromList(controller.pdfBytes!),
           filename: 'relatorio_laje.pdf',
         );
       } catch (e) {

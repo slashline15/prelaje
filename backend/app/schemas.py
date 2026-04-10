@@ -76,7 +76,7 @@ class DadosLaje(BaseModel):
     vao: float = Field(..., gt=0, le=10.0, description="Vão livre entre apoios (m)")
     intereixo: float = Field(..., gt=0, description="Intereixo entre nervuras (m)")
     h_enchimento: float = Field(..., ge=0, description="Altura do enchimento EPS/cerâmica (m)")
-    h_capa: float = Field(..., ge=0.04, description="Espessura da capa de concreto (m) — mínimo 4 cm")
+    h_capa: float = Field(..., ge=0.025, description="Espessura da capa de concreto (m) — mínimo 2,5 cm")
     largura_total: float = Field(..., gt=0, description="Largura total da laje (m)")
 
     # Materiais
@@ -96,8 +96,8 @@ class DadosLaje(BaseModel):
     @field_validator("h_capa")
     @classmethod
     def capa_minima(cls, v):
-        if v < 0.04:
-            raise ValueError("Espessura de capa abaixo do mínimo normativo de 4 cm (NBR 6118)")
+        if v < 0.025:
+            raise ValueError("Espessura de capa abaixo do mínimo normativo de 2,5 cm (NBR 6118)")
         return v
 
     @field_validator("vao")

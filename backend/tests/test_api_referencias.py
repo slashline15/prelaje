@@ -68,6 +68,7 @@ def test_vigotas_expoe_codigos_canonicos_aliases_e_modos():
     assert any(
         item["codigo_canonico"] == "TR 8644"
         and "TB 8L" in item["aliases"]
+        and "TR644" in item["aliases"]
         and item["disponivel_analitico"] is True
         and item["disponivel_catalogo"] is True
         for item in dados

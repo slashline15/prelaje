@@ -55,7 +55,30 @@ def test_relatorio_pdf_catalogo_retorna_resultado_catalogado():
     assert response.status_code == 200
     assert response.content.startswith(b"%PDF")
     assert b"Resultado do modo catalogo" in response.content
-    assert b"153.8 kgf/m2" in response.content
+    assert b"51.0 kgf/m2" in response.content
     assert b"CATALOGO_REFERENCIA" in response.content
     assert b"Orcamento preliminar" in response.content
     assert b"RESUMO COMERCIAL" in response.content
+
+
+def test_relatorio_pdf_rejeitado_nao_exibe_orcamento():
+    payload = {
+        "vao": 7.0,
+        "intereixo": 0.42,
+        "h_enchimento": 0.08,
+        "h_capa": 0.04,
+        "largura_total": 4.0,
+        "fck": 20.0,
+        "classe_aco": "CA-50",
+        "codigo_vigota": "TR 8644",
+        "uso": "residencial_dormitorio",
+        "g_revestimento": 0.5,
+        "tipo_apoio": "biapoiada",
+        "modo": "analitico",
+    }
+    response = client.post("/api/v1/relatorio-pdf", json=payload)
+
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF")
+    assert b"Orcamento preliminar" not in response.content
+    assert b"Quantitativos preliminares" not in response.content

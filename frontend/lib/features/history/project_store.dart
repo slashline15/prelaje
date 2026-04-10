@@ -60,6 +60,34 @@ class ProjectRecord {
 class ProjectStore {
   static const _key = 'prelaje.projects.v1';
 
+  static Future<void> saveFromCalculation({
+    required String id,
+    required String name,
+    required DateTime createdAt,
+    required double areaM2,
+    required double estimatedMin,
+    required double estimatedMax,
+    required String usageLabel,
+    required String vigotaLabel,
+    required String finishLabel,
+    required String summary,
+  }) {
+    return save(
+      ProjectRecord(
+        id: id,
+        name: name,
+        createdAt: createdAt,
+        areaM2: areaM2,
+        estimatedMin: estimatedMin,
+        estimatedMax: estimatedMax,
+        usageLabel: usageLabel,
+        vigotaLabel: vigotaLabel,
+        finishLabel: finishLabel,
+        summary: summary,
+      ),
+    );
+  }
+
   static Future<List<ProjectRecord>> loadAll() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_key) ?? const [];

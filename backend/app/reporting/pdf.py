@@ -113,14 +113,15 @@ def gerar_relatorio_pdf(dados: DadosLaje, resultado: ResultadoDimensionamento) -
         )
         linha("")
 
-    linha("Quantitativos preliminares", tamanho=12, salto=18)
-    linha(f"Numero de vigotas: {resultado.quantitativos.n_vigotas}")
-    linha(f"Numero de enchimentos: {resultado.quantitativos.n_enchimento}")
-    linha(f"Volume de capa: {resultado.quantitativos.volume_capa_m3:.3f} m3")
-    linha(f"Peso de tela soldada: {resultado.quantitativos.peso_tela_kg:.1f} kg")
-    linha("")
+    if resultado.aprovado:
+        linha("Quantitativos preliminares", tamanho=12, salto=18)
+        linha(f"Numero de vigotas: {resultado.quantitativos.n_vigotas}")
+        linha(f"Numero de enchimentos: {resultado.quantitativos.n_enchimento}")
+        linha(f"Volume de capa: {resultado.quantitativos.volume_capa_m3:.3f} m3")
+        linha(f"Peso de tela soldada: {resultado.quantitativos.peso_tela_kg:.1f} kg")
+        linha("")
 
-    if resultado.orcamento is not None:
+    if resultado.aprovado and resultado.orcamento is not None:
         linha("Orcamento preliminar (referencia, sem compromisso)", tamanho=12, salto=18)
         linha("Precos de referencia regional. Nao constitui proposta comercial.")
         linha(f"Regiao de referencia: {resultado.orcamento.regiao}")
@@ -145,7 +146,7 @@ def gerar_relatorio_pdf(dados: DadosLaje, resultado: ResultadoDimensionamento) -
                 linha(f"- {alerta}")
         linha("")
 
-    if resultado.orcamento is not None and resultado.orcamento.resumo_comercial is not None:
+    if resultado.aprovado and resultado.orcamento is not None and resultado.orcamento.resumo_comercial is not None:
         rc = resultado.orcamento.resumo_comercial
         linha("RESUMO COMERCIAL", tamanho=14, salto=20)
         linha(f"Area da laje: {rc.area_laje_m2:.2f} m2 | Regiao: {rc.regiao}")

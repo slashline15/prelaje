@@ -4,6 +4,7 @@ Rastreável a: docs/dominio/02_catalogo_materiais.md §4
 """
 
 import csv
+import math
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import lru_cache
@@ -139,8 +140,45 @@ def codigos_catalogo_disponiveis() -> dict[str, dict[str, list[int]]]:
     }
 
 
-def carga_total_catalogo_kgf_m2(g_k: float, q_k: float) -> float:
-    return round((g_k + q_k) * KGF_M2_POR_KN_M2, 1)
+def _round_half_up(x: float) -> int:
+    """Round half-up (avoids Python's banker's rounding)."""
+    return int(math.floor(x + 0.5))
+
+
+def sobrecarga_catalogo_kgf_m2(g_revestimento: float, q_k: float) -> float:
+    """
+    Sobrecarga útil em kgf/m² para comparação com catálogo.
+
+    Catálogos de fabricantes brasileiros informam a sobrecarga útil
+    (carga excluindo peso próprio do sistema laje pré-moldada).
+    Portanto comparamos apenas revestimento + carga acidental.
+    """
+    return round((g_revestimento + q_k) * KGF_M2_POR_KN_M2, 1)
+
+
+# Keep old name for backward compat (tests)
+carga_total_catalogo_kgf_m2 = sobrecarga_catalogo_kgf_m2
+
+
+def _encontrar_capa_disponivel(
+    solucoes: dict,
+    codigo_vigota: str,
+    fck_int: int,
+    intereixo_int: int,
+    capa_solicitada_int: int,
+) -> int | None:
+    """Busca a menor capa disponível >= capa solicitada para a combinação."""
+    capas = sorted(
+        chave[3]
+        for chave in solucoes
+        if chave[0] == codigo_vigota
+        and chave[1] == fck_int
+        and chave[2] == intereixo_int
+    )
+    for c in capas:
+        if c >= capa_solicitada_int:
+            return c
+    return capas[0] if capas else None
 
 
 def buscar_solucao_catalogo(
@@ -152,11 +190,22 @@ def buscar_solucao_catalogo(
     carga_total_kgf_m2: float,
 ) -> SolucaoCatalogo:
     codigo_vigota = normalizar_codigo_vigota(codigo_vigota)
-    fck_capa_mpa_int = int(round(fck_capa_mpa))
-    intereixo_cm_int = int(round(intereixo_cm))
-    capa_cm_int = int(round(capa_cm))
+    fck_capa_mpa_int = _round_half_up(fck_capa_mpa)
+    intereixo_cm_int = _round_half_up(intereixo_cm)
+    capa_cm_int = _round_half_up(capa_cm)
     solucoes = carregar_catalogo_solucoes()
+
+    # Try exact match first, then find nearest available capa
     tabela = solucoes.get((codigo_vigota, fck_capa_mpa_int, intereixo_cm_int, capa_cm_int))
+    if tabela is None:
+        capa_efetiva = _encontrar_capa_disponivel(
+            solucoes, codigo_vigota, fck_capa_mpa_int, intereixo_cm_int, capa_cm_int,
+        )
+        if capa_efetiva is not None:
+            tabela = solucoes.get(
+                (codigo_vigota, fck_capa_mpa_int, intereixo_cm_int, capa_efetiva)
+            )
+
     if tabela is None:
         tem_codigo_fck = any(
             chave[0] == codigo_vigota and chave[1] == fck_capa_mpa_int
